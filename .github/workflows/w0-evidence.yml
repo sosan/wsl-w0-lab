@@ -23,13 +23,19 @@ jobs:
             Out-String | Set-Content raw/host-info.txt
           "Image label: $env:ImageOS / $env:ImageVersion" | Set-Content raw/host-image.txt
 
+            exit 0
+
       - name: WSL baseline — default encoding (raw bytes preserved)
         shell: pwsh
         run: |
-          cmd /c "wsl.exe --status > raw\status-default.txt 2>&1"
-          cmd /c "wsl.exe --version > raw\version-default.txt 2>&1"
-          cmd /c "wsl.exe --list --verbose > raw\list-verbose-default.txt 2>&1"
-          cmd /c "wsl.exe --list --online > raw\list-online-default.txt 2>&1"
+          & cmd /c "wsl.exe --status > raw\status-default.txt 2>&1"
+          "EXIT=$LASTEXITCODE" | Add-Content raw/status-default.txt
+          & cmd /c "wsl.exe --version > raw\version-default.txt 2>&1"
+          "EXIT=$LASTEXITCODE" | Add-Content raw/version-default.txt
+          & cmd /c "wsl.exe --list --verbose > raw\list-verbose-default.txt 2>&1"
+          "EXIT=$LASTEXITCODE" | Add-Content raw/list-verbose-default.txt
+          & cmd /c "wsl.exe --list --online > raw\list-online-default.txt 2>&1"
+          "EXIT=$LASTEXITCODE" | Add-Content raw/list-online-default.txt
           $bytes = [IO.File]::ReadAllBytes("raw/list-verbose-default.txt")
           $head = ($bytes[0..63] | ForEach-Object { $_.ToString('X2') }) -join ' '
           $bom16 = ($bytes.Length -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE -or
@@ -37,6 +43,8 @@ jobs:
                     $bytes.Length -ge 2 -and $bytes[3] -eq 0x00)
           "Head bytes: $head" | Set-Content raw/hex-head-list-verbose.txt
           "Likely UTF-16LE payload: $bom16" | Set-Content raw/encoding-shape.txt
+
+            exit 0
 
       - name: WSL baseline — WSL_UTF8=1
         shell: pwsh
@@ -49,6 +57,8 @@ jobs:
           cmd /c "wsl.exe --help > raw\help-wslutf8.txt 2>&1"
           Get-Content raw/status-wslutf8.txt
           Get-Content raw/list-verbose-wslutf8.txt
+
+            exit 0
 
       - name: Zero-distro state — unregister everything, capture diagnostics
         shell: pwsh
@@ -81,6 +91,8 @@ jobs:
           "LASTEXITCODE=$LASTEXITCODE" | Add-Content raw/zero-distro-missing.txt
           Get-WslText "raw/zero-distro-list.txt" | Set-Content raw/zero-distro-list-decoded.txt
 
+            exit 0
+
       - name: Prepare pinned Alpine rootfs (sha256-verified)
         shell: pwsh
         run: |
@@ -94,6 +106,8 @@ jobs:
             exit 1
           }
 
+            exit 0
+
       - name: Import two distros — plain name and spaced/unicode name
         shell: pwsh
         run: |
@@ -105,6 +119,8 @@ jobs:
           $env:WSL_UTF8 = '1'
           ">> -l -v after imports" | Add-Content raw/list-after-import.txt
           & wsl.exe --list --verbose *>> raw/list-after-import.txt
+
+            exit 0
 
       - name: Listing does not wake a stopped distro (timing evidence)
         shell: pwsh
@@ -119,6 +135,8 @@ jobs:
           Start-Sleep -Seconds 2
           & wsl.exe --list --verbose *>> raw/list-does-not-wake.txt
 
+            exit 0
+
       - name: A command wakes the distro; Running vs Stopped
         shell: pwsh
         run: |
@@ -130,6 +148,8 @@ jobs:
           ">> terminate then re-check" | Add-Content raw/terminated-list.txt
           & wsl.exe --terminate quorb_w0 *>> raw/terminated-list.txt
           & wsl.exe --list --verbose *>> raw/terminated-list.txt
+
+            exit 0
 
       - name: Default user and home (no name assumptions)
         shell: pwsh
@@ -155,6 +175,8 @@ jobs:
           ">> -u root override still works" | Add-Content raw/user-default.txt
           & wsl.exe -d quorb_w0 -u root -- whoami *>> raw/user-default.txt
 
+            exit 0
+
       - name: Unicode and spaced distro name targeting
         shell: pwsh
         run: |
@@ -169,6 +191,8 @@ jobs:
           ">> setting default distro to the unicode name then unsetting" | Add-Content raw/unicode-name.txt
           & wsl.exe --set-default "Quorb Prueba Ñ" *>> raw/unicode-name.txt
           & wsl.exe --set-default quorb_w0 *>> raw/unicode-name.txt
+
+            exit 0
 
       - name: Exit codes — missing distro, invalid flags
         shell: pwsh
@@ -185,6 +209,8 @@ jobs:
           ">> empty distro name" | Add-Content raw/exit-codes.txt
           & wsl.exe -d " " -- echo hi *>> raw/exit-codes.txt
           "LASTEXITCODE=$LASTEXITCODE" | Add-Content raw/exit-codes.txt
+
+            exit 0
 
       - name: Timeout / hang behavior evidence
         shell: pwsh
@@ -206,6 +232,8 @@ jobs:
           & wsl.exe --list --verbose *>> raw/timeout-hang.txt
           ">> explicit terminate" | Add-Content raw/timeout-hang.txt
           & wsl.exe --terminate quorb_w0 *>> raw/timeout-hang.txt
+
+            exit 0
 
       - name: Evidence summary and artifact matrix
         shell: pwsh
@@ -231,6 +259,8 @@ jobs:
           $summary = $head -join "`n"
           Set-Content EVIDENCE.md $summary
           Add-Content $env:GITHUB_STEP_SUMMARY $summary
+
+            exit 0
 
       - name: Upload raw evidence
         uses: actions/upload-artifact@v4
