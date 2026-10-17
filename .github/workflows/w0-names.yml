@@ -39,6 +39,7 @@ jobs:
           & wsl.exe --import "PruebaÑ" C:\wsl\n2 rootfs.tar.gz *>> raw/import-pwsh.txt
           "LASTEXITCODE=$LASTEXITCODE" | Add-Content raw/import-pwsh.txt
           Get-Content raw/import-pwsh.txt
+          exit 0
 
       - name: Import matrix — pwsh, cyrillic + CJK
         shell: pwsh
